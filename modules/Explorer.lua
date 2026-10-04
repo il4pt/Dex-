@@ -909,6 +909,7 @@ local function main()
 
 		if expanded == Explorer.SearchExpanded then context:AddRegistered("CLEAR_SEARCH_AND_JUMP_TO") end
 		if env.setclipboard then context:AddRegistered("COPY_PATH") end
+		if env.setclipboard then context:AddRegistered("COPY_DEBUG_ID") end
 		context:AddRegistered("INSERT_OBJECT")
 		context:AddRegistered("SAVE_INST")
 		-- context:AddRegistered("CALL_FUNCTION")
@@ -1348,6 +1349,22 @@ local function main()
 				resList[count] = "}"
 				env.setclipboard(table.concat(resList,"\n"))
 			end
+		end})
+
+		-- Session-unique id Roblox assigns to every instance (needs plugin level identity, changes every session)
+		context:Register("COPY_DEBUG_ID",{Name = "Copy Debug ID", IconMap = Explorer.MiscIcons, Icon = "Reference", OnClick = function()
+			local sList = selection.List
+			local lines = {}
+			for i = 1,#sList do
+				local obj = sList[i].Obj
+				local s,id = pcall(obj.GetDebugId,obj)
+				if not s then
+					warn("[Dex++] GetDebugId is not available on this executor: "..tostring(id))
+					return
+				end
+				lines[#lines+1] = (#sList == 1) and id or (tostring(obj).." = "..id)
+			end
+			if #lines > 0 then env.setclipboard(table.concat(lines,"\n")) end
 		end})
 
 		context:Register("INSERT_OBJECT",{Name = "Insert Object", IconMap = Explorer.MiscIcons, Icon = "InsertObject", OnClick = function()
