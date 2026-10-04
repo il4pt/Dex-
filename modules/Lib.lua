@@ -310,13 +310,29 @@ local function main()
 
 	-- Sets a property with a short tween when the soft theme is on
 	local activeTweens = setmetatable({},{__mode = "k"})
-	Lib.SoftSet = function(obj,prop,value)
+	-- instant: cancel any running tween on that property and set it right away
+	Lib.SoftSet = function(obj,prop,value,instant)
 		if not softEnabled() then obj[prop] = value return end
 		local tweens = activeTweens[obj]
 		if not tweens then tweens = {} activeTweens[obj] = tweens end
-		if tweens[prop] then tweens[prop]:Cancel() end
+		local cur = tweens[prop]
+		if instant then
+			if cur then cur.Tween:Cancel() tweens[prop] = nil end
+			obj[prop] = value
+			return
+		end
+		-- Called from hot paths (list refreshes), skip when nothing would change
+		if cur then
+			if cur.Target == value and cur.Tween.PlaybackState == Enum.PlaybackState.Playing then return end
+			cur.Tween:Cancel()
+		elseif obj[prop] == value then
+			return
+		end
 		local tween = service.TweenService:Create(obj,softTweenInfo,{[prop] = value})
-		tweens[prop] = tween
+		tweens[prop] = {Tween = tween, Target = value}
+		tween.Completed:Connect(function()
+			if tweens[prop] and tweens[prop].Tween == tween then tweens[prop] = nil end
+		end)
 		tween:Play()
 	end
 
@@ -2778,6 +2794,11 @@ local function main()
 
 			self.GuiElems.Backdrop = backdrop
 
+			if winTheme.SoftShapes then
+				guiTopBar.Title.Font = Enum.Font.GothamMedium
+				guiTopBar.Title.TextSize = 13
+			end
+
 
 			guiTopBar.InputBegan:Connect(function(input)
 				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -3219,6 +3240,36 @@ local function main()
 
 		funcs.SetTitle = function(self,title)
 			self.GuiElems.Title.Text = title
+		end
+
+		-- Small app icon at the left of the title bar
+		funcs.SetIcon = function(self,iconMap,icon)
+			local topBar = self.GuiElems.TopBar
+			local iconLabel = self.GuiElems.Icon
+			if not iconLabel then
+				iconLabel = Instance.new("ImageLabel")
+				iconLabel.Name = "AppIcon"
+				iconLabel.BackgroundTransparency = 1
+				iconLabel.Position = UDim2.new(0,6,0,3)
+				iconLabel.Size = UDim2.new(0,14,0,14)
+				iconLabel.ImageTransparency = 0.15
+				iconLabel.Parent = topBar
+				self.GuiElems.Icon = iconLabel
+			end
+
+			if iconMap and type(icon) == "number" then
+				iconMap:Display(iconLabel,icon)
+			elseif iconMap and type(icon) == "string" then
+				iconMap:DisplayByKey(iconLabel,icon)
+			elseif type(icon) == "string" then
+				iconLabel.Image = icon
+			end
+
+			local title = self.GuiElems.Title
+			if not Settings.Window.TitleOnMiddle then
+				title.Position = UDim2.new(0,25,0,0)
+				title.Size = UDim2.new(1,-65,0,20)
+			end
 		end
 
 		funcs.SetResizable = function(self,val)

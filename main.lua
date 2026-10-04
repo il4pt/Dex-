@@ -50,6 +50,8 @@ DefaultSettings = (function()
 			Toggle = rgb(108,122,230), -- checked checkbox fill
 			ScrollThumb = rgb(58,60,76),
 			ScrollThumbHover = rgb(76,79,100),
+			Category = rgb(34,35,46), -- Properties category rows
+			CategoryText = rgb(170,180,250),
 			Main1 = rgb(31,31,37),
 			Main2 = rgb(27,27,32),
 			Outline1 = rgb(20,20,24), -- Mainly frames
@@ -1228,155 +1230,125 @@ Main = (function()
 
 	Main.ShowGui = Main.SecureGui
 
-	Main.CreateIntro = function(initStatus) -- TODO: Must theme and show errors
-		local gui = create({
-			{1,"ScreenGui",{Name="Intro",}},
-			{2,"Frame",{Active=true,BackgroundColor3=Color3.new(0.20392157137394,0.20392157137394,0.20392157137394),BorderSizePixel=0,Name="Main",Parent={1},Position=UDim2.new(0.5,-175,0.5,-100),Size=UDim2.new(0,350,0,200),}},
-			{3,"Frame",{BackgroundColor3=Color3.new(0.17647059261799,0.17647059261799,0.17647059261799),BorderSizePixel=0,ClipsDescendants=true,Name="Holder",Parent={2},Size=UDim2.new(1,0,1,0),}},
-			{4,"UIGradient",{Parent={3},Rotation=30,Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1,0),NumberSequenceKeypoint.new(1,1,0),}),}},
-			{5,"TextLabel",{BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=1,Font=4,Name="Title",Parent={3},Position=UDim2.new(0,-190,0,15),Size=UDim2.new(0,100,0,50),Text="Dex++",TextColor3=Color3.new(1,1,1),TextSize=50,TextTransparency=1,}},
-			{6,"TextLabel",{BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=1,Font=3,Name="Desc",Parent={3},Position=UDim2.new(0,-230,0,60),Size=UDim2.new(0,180,0,25),Text="Ultimate Debugging Suite",TextColor3=Color3.new(1,1,1),TextSize=18,TextTransparency=1,}},
-			{7,"TextLabel",{BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=1,Font=3,Name="StatusText",Parent={3},Position=UDim2.new(0,20,0,110),Size=UDim2.new(0,180,0,25),Text="Fetching API",TextColor3=Color3.new(1,1,1),TextSize=14,TextTransparency=1,}},
-			{8,"Frame",{BackgroundColor3=Color3.new(0.20392157137394,0.20392157137394,0.20392157137394),BorderSizePixel=0,Name="ProgressBar",Parent={3},Position=UDim2.new(0,110,0,145),Size=UDim2.new(0,0,0,4),}},
-			{9,"Frame",{BackgroundColor3=Color3.new(0.2392156869173,0.56078433990479,0.86274510622025),BorderSizePixel=0,Name="Bar",Parent={8},Size=UDim2.new(0,0,1,0),}},
-			{10,"ImageLabel",{BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=1,Image="rbxassetid://2764171053",ImageColor3=Color3.new(0.17647059261799,0.17647059261799,0.17647059261799),Parent={8},ScaleType=1,Size=UDim2.new(1,0,1,0),SliceCenter=Rect.new(2,2,254,254),}},
-			{11,"TextLabel",{BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=1,Font=3,Name="Creator",Parent={2},Position=UDim2.new(1,-110,1,-20),Size=UDim2.new(0,105,0,20),Text="Developed by Chillz.",TextColor3=Color3.new(1,1,1),TextSize=14,TextXAlignment=1,}},
-			{12,"UIGradient",{Parent={11},Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1,0),NumberSequenceKeypoint.new(1,1,0),}),}},
-			{13,"TextLabel",{BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=1,Font=3,Name="Version",Parent={2},Position=UDim2.new(1,-110,1,-35),Size=UDim2.new(0,105,0,20),Text=Main.Version,TextColor3=Color3.new(1,1,1),TextSize=14,TextXAlignment=1,}},
-			{14,"UIGradient",{Parent={13},Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1,0),NumberSequenceKeypoint.new(1,1,0),}),}},
-			{15,"ImageLabel",{BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=1,BorderSizePixel=0,Image="rbxassetid://1427967925",Name="Outlines",Parent={2},Position=UDim2.new(0,-5,0,-5),ScaleType=1,Size=UDim2.new(1,10,1,10),SliceCenter=Rect.new(6,6,25,25),TileSize=UDim2.new(0,20,0,20),}},
-			{16,"UIGradient",{Parent={15},Rotation=-30,Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1,0),NumberSequenceKeypoint.new(1,1,0),}),}},
-			{17,"UIGradient",{Parent={2},Rotation=-30,Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1,0),NumberSequenceKeypoint.new(1,1,0),}),}},
-			{18,"UIDragDetector", {Parent={2}}}
-		})
+	Main.CreateIntro = function(initStatus)
+		local theme = Settings.Theme
+		local rgb = Color3.fromRGB
+		local accent = theme.Accent or rgb(132,146,255)
+		local accent2 = theme.Toggle or rgb(108,122,230)
+		local textCol = theme.Text or rgb(227,230,242)
+		local mutedCol = theme.PlaceholderText or rgb(95,96,104)
+		local font = Enum.Font.Gotham
+		local boldFont = Enum.Font.GothamBold
+
+		local gui = Instance.new("ScreenGui")
+		gui.Name = "Intro"
+		gui.IgnoreGuiInset = true
+		gui.DisplayOrder = Main.DisplayOrders.Core
+
+		-- Soft shadow behind the card
+		local glow = createSimple("Frame",{Name = "Glow", AnchorPoint = Vector2.new(0.5,0.5), Position = UDim2.new(0.5,0,0.5,4), Size = UDim2.new(0,384,0,234), BackgroundColor3 = Color3.new(0,0,0), BackgroundTransparency = 1, BorderSizePixel = 0, Parent = gui})
+		createSimple("UICorner",{CornerRadius = UDim.new(0,20), Parent = glow})
+
+		local card = createSimple("Frame",{Name = "Main", Active = true, AnchorPoint = Vector2.new(0.5,0.5), Position = UDim2.new(0.5,0,0.5,0), Size = UDim2.new(0,360,0,210), BackgroundColor3 = theme.Main2 or rgb(27,27,32), BackgroundTransparency = 1, BorderSizePixel = 0, Parent = gui})
+		createSimple("UICorner",{CornerRadius = UDim.new(0,12), Parent = card})
+		local stroke = createSimple("UIStroke",{ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Color = theme.WindowStroke or rgb(52,54,68), Transparency = 1, Parent = card})
+		createSimple("UIGradient",{Rotation = 35, Color = ColorSequence.new(rgb(255,255,255), rgb(205,208,226)), Parent = card})
+		local scale = createSimple("UIScale",{Scale = 0.92, Parent = card})
+		pcall(function() Instance.new("UIDragDetector").Parent = card end)
+
+		local function label(props)
+			props.BackgroundTransparency = 1
+			props.TextTransparency = 1
+			props.TextXAlignment = props.TextXAlignment or Enum.TextXAlignment.Left
+			props.Parent = card
+			return createSimple("TextLabel",props)
+		end
+
+		local titleText = label({Name = "Title", Font = boldFont, Text = "Dex++", TextSize = 40, TextColor3 = rgb(255,255,255), Position = UDim2.new(0,24,0,28), Size = UDim2.new(1,-48,0,44)})
+		createSimple("UIGradient",{Color = ColorSequence.new(textCol, accent), Parent = titleText})
+		local editionText = label({Name = "Edition", Font = font, Text = "Soft Dark Edition", TextSize = 14, TextColor3 = accent, Position = UDim2.new(0,26,0,70), Size = UDim2.new(1,-52,0,16)})
+		local descText = label({Name = "Desc", Font = font, Text = "Ultimate Debugging Suite", TextSize = 13, TextColor3 = mutedCol, Position = UDim2.new(0,26,0,88), Size = UDim2.new(1,-52,0,16)})
+		local statusText = label({Name = "StatusText", Font = font, Text = initStatus or "", TextSize = 13, TextColor3 = textCol, Position = UDim2.new(0,24,0,132), Size = UDim2.new(1,-48,0,16), TextTruncate = Enum.TextTruncate.AtEnd})
+
+		local track = createSimple("Frame",{Name = "ProgressBar", Position = UDim2.new(0,24,0,154), Size = UDim2.new(1,-48,0,6), BackgroundColor3 = theme.Main1 or rgb(31,31,37), BackgroundTransparency = 1, BorderSizePixel = 0, Parent = card})
+		createSimple("UICorner",{CornerRadius = UDim.new(1,0), Parent = track})
+		local fill = createSimple("Frame",{Name = "Bar", Size = UDim2.new(0,0,1,0), BackgroundColor3 = rgb(255,255,255), BackgroundTransparency = 1, BorderSizePixel = 0, Parent = track})
+		createSimple("UICorner",{CornerRadius = UDim.new(1,0), Parent = fill})
+		local shimmer = createSimple("UIGradient",{Color = ColorSequence.new({ColorSequenceKeypoint.new(0,accent2), ColorSequenceKeypoint.new(0.5,accent), ColorSequenceKeypoint.new(1,accent2)}), Parent = fill})
+
+		local versionText = label({Name = "Version", Font = font, Text = "v"..Main.Version.."  ·  Soft Dark", TextSize = 12, TextColor3 = mutedCol, Position = UDim2.new(0,24,1,-30), Size = UDim2.new(0.5,-24,0,16)})
+		local creatorText = label({Name = "Creator", Font = font, Text = "Developed by il4pt", TextSize = 12, TextColor3 = accent, TextXAlignment = Enum.TextXAlignment.Right, Position = UDim2.new(0.5,0,1,-30), Size = UDim2.new(0.5,-24,0,16)})
+
 		Main.ShowGui(gui)
-		local backGradient = gui.Main.UIGradient
-		local outlinesGradient = gui.Main.Outlines.UIGradient
-		local holderGradient = gui.Main.Holder.UIGradient
-		local titleText = gui.Main.Holder.Title
-		local descText = gui.Main.Holder.Desc
-		local versionText = gui.Main.Version
-		local versionGradient = versionText.UIGradient
-		local creatorText = gui.Main.Creator
-		local creatorGradient = creatorText.UIGradient
-		local statusText = gui.Main.Holder.StatusText
-		local progressBar = gui.Main.Holder.ProgressBar
+
 		local tweenS = service.TweenService
-
 		local renderStepped = service.RunService.RenderStepped
-		local signalWait = renderStepped.wait
 		local fastwait = function(s)
-			if not s then return signalWait(renderStepped) end
+			if not s then return renderStepped:Wait() end
 			local start = tick()
-			while tick() - start < s do signalWait(renderStepped) end
+			while tick() - start < s do renderStepped:Wait() end
+		end
+		local function tween(obj,t,props,style,dir)
+			local tw = tweenS:Create(obj,TweenInfo.new(t,style or Enum.EasingStyle.Quint,dir or Enum.EasingDirection.Out),props)
+			tw:Play()
+			return tw
 		end
 
-		statusText.Text = initStatus
-
-		local function tweenNumber(n,ti,func)
-			local tweenVal = Instance.new("IntValue")
-			tweenVal.Value = 0
-			tweenVal.Changed:Connect(func)
-			local tween = tweenS:Create(tweenVal,ti,{Value = n})
-			tween:Play()
-			tween.Completed:Connect(function()
-				tweenVal:Destroy()
-			end)
-		end
-
-		local ti = TweenInfo.new(0.4,Enum.EasingStyle.Quad,Enum.EasingDirection.Out)
-		tweenNumber(100,ti,function(val)
-			val = val/200
-			local start = NumberSequenceKeypoint.new(0,0)
-			local a1 = NumberSequenceKeypoint.new(val,0)
-			local a2 = NumberSequenceKeypoint.new(math.min(0.5,val+math.min(0.05,val)),1)
-			if a1.Time == a2.Time then a2 = a1 end
-			local b1 = NumberSequenceKeypoint.new(1-val,0)
-			local b2 = NumberSequenceKeypoint.new(math.max(0.5,1-val-math.min(0.05,val)),1)
-			if b1.Time == b2.Time then b2 = b1 end
-			local goal = NumberSequenceKeypoint.new(1,0)
-			backGradient.Transparency = NumberSequence.new({start,a1,a2,b2,b1,goal})
-			outlinesGradient.Transparency = NumberSequence.new({start,a1,a2,b2,b1,goal})
+		-- Shimmer runs until the intro is gone
+		local alive = true
+		task.spawn(function()
+			while alive and gui.Parent do
+				shimmer.Offset = Vector2.new(-1,0)
+				local tw = tween(shimmer,1.4,{Offset = Vector2.new(1,0)},Enum.EasingStyle.Sine,Enum.EasingDirection.InOut)
+				tw.Completed:Wait()
+			end
 		end)
 
+		-- Open: card pops in, then the texts slide up one after another
+		tween(glow,0.5,{BackgroundTransparency = 0.6})
+		tween(card,0.45,{BackgroundTransparency = 0})
+		tween(stroke,0.45,{Transparency = 0.3})
+		tween(scale,0.55,{Scale = 1},Enum.EasingStyle.Back)
+		fastwait(0.2)
+
+		local function reveal(obj,delayTime)
+			local target = obj.Position
+			obj.Position = target + UDim2.new(0,0,0,8)
+			task.delay(delayTime,function()
+				tween(obj,0.5,{Position = target, TextTransparency = 0})
+			end)
+		end
+		reveal(titleText,0)
+		reveal(editionText,0.08)
+		reveal(descText,0.16)
+		reveal(versionText,0.24)
+		reveal(creatorText,0.24)
 		fastwait(0.4)
 
-		tweenNumber(100,ti,function(val)
-			val = val/166.66
-			local start = NumberSequenceKeypoint.new(0,0)
-			local a1 = NumberSequenceKeypoint.new(val,0)
-			local a2 = NumberSequenceKeypoint.new(val+0.01,1)
-			local goal = NumberSequenceKeypoint.new(1,1)
-			holderGradient.Transparency = NumberSequence.new({start,a1,a2,goal})
-		end)
-
-		tweenS:Create(titleText,ti,{Position = UDim2.new(0,60,0,15), TextTransparency = 0}):Play()
-		tweenS:Create(descText,ti,{Position = UDim2.new(0,20,0,60), TextTransparency = 0}):Play()
-
-		local function rightTextTransparency(obj)
-			tweenNumber(100,ti,function(val)
-				val = val/100
-				local a1 = NumberSequenceKeypoint.new(1-val,0)
-				local a2 = NumberSequenceKeypoint.new(math.max(0,1-val-0.01),1)
-				if a1.Time == a2.Time then a2 = a1 end
-				local start = NumberSequenceKeypoint.new(0,a1 == a2 and 0 or 1)
-				local goal = NumberSequenceKeypoint.new(1,0)
-				obj.Transparency = NumberSequence.new({start,a2,a1,goal})
-			end)
-		end
-		rightTextTransparency(versionGradient)
-		rightTextTransparency(creatorGradient)
-
-		fastwait(0.9)
-
-		local progressTI = TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out)
-
-		tweenS:Create(statusText,progressTI,{Position = UDim2.new(0,20,0,120), TextTransparency = 0}):Play()
-		tweenS:Create(progressBar,progressTI,{Position = UDim2.new(0,60,0,145), Size = UDim2.new(0,100,0,4)}):Play()
-
-		fastwait(0.25)
+		reveal(statusText,0)
+		tween(track,0.4,{BackgroundTransparency = 0})
+		tween(fill,0.4,{BackgroundTransparency = 0})
+		fastwait(0.35)
 
 		local function setProgress(text,n)
 			statusText.Text = text
-			tweenS:Create(progressBar.Bar,progressTI,{Size = UDim2.new(n,0,1,0)}):Play()
+			tween(fill,0.35,{Size = UDim2.new(math.clamp(n or 0,0,1),0,1,0)})
 		end
 
 		local function close()
-			tweenS:Create(titleText,progressTI,{TextTransparency = 1}):Play()
-			tweenS:Create(descText,progressTI,{TextTransparency = 1}):Play()
-			tweenS:Create(versionText,progressTI,{TextTransparency = 1}):Play()
-			tweenS:Create(creatorText,progressTI,{TextTransparency = 1}):Play()
-			tweenS:Create(statusText,progressTI,{TextTransparency = 1}):Play()
-			tweenS:Create(progressBar,progressTI,{BackgroundTransparency = 1}):Play()
-			tweenS:Create(progressBar.Bar,progressTI,{BackgroundTransparency = 1}):Play()
-			tweenS:Create(progressBar.ImageLabel,progressTI,{ImageTransparency = 1}):Play()
-
-			tweenNumber(100,TweenInfo.new(0.4,Enum.EasingStyle.Back,Enum.EasingDirection.In),function(val)
-				val = val/250
-				local start = NumberSequenceKeypoint.new(0,0)
-				local a1 = NumberSequenceKeypoint.new(0.6+val,0)
-				local a2 = NumberSequenceKeypoint.new(math.min(1,0.601+val),1)
-				if a1.Time == a2.Time then a2 = a1 end
-				local goal = NumberSequenceKeypoint.new(1,a1 == a2 and 0 or 1)
-				holderGradient.Transparency = NumberSequence.new({start,a1,a2,goal})
-			end)
-
-			fastwait(0.5)
-			gui.Main.BackgroundTransparency = 1
-			outlinesGradient.Rotation = 30
-
-			tweenNumber(100,ti,function(val)
-				val = val/100
-				local start = NumberSequenceKeypoint.new(0,1)
-				local a1 = NumberSequenceKeypoint.new(val,1)
-				local a2 = NumberSequenceKeypoint.new(math.min(1,val+math.min(0.05,val)),0)
-				if a1.Time == a2.Time then a2 = a1 end
-				local goal = NumberSequenceKeypoint.new(1,a1 == a2 and 1 or 0)
-				outlinesGradient.Transparency = NumberSequence.new({start,a1,a2,goal})
-				holderGradient.Transparency = NumberSequence.new({start,a1,a2,goal})
-			end)
-
-			fastwait(0.45)
+			local fadeTime = 0.3
+			for _,obj in ipairs({titleText,editionText,descText,statusText,versionText,creatorText}) do
+				tween(obj,fadeTime,{TextTransparency = 1})
+			end
+			tween(track,fadeTime,{BackgroundTransparency = 1})
+			tween(fill,fadeTime,{BackgroundTransparency = 1})
+			fastwait(0.15)
+			tween(scale,0.35,{Scale = 0.95},Enum.EasingStyle.Quad,Enum.EasingDirection.In)
+			tween(card,0.35,{BackgroundTransparency = 1},Enum.EasingStyle.Quad,Enum.EasingDirection.In)
+			tween(stroke,0.35,{Transparency = 1},Enum.EasingStyle.Quad,Enum.EasingDirection.In)
+			tween(glow,0.35,{BackgroundTransparency = 1},Enum.EasingStyle.Quad,Enum.EasingDirection.In)
+			fastwait(0.4)
+			alive = false
 			gui:Destroy()
 		end
 
@@ -1454,6 +1426,9 @@ Main = (function()
 
 		local window = data.Window
 		if window then
+			if Settings.Theme.SoftShapes and window.SetIcon and iconIndex then
+				pcall(window.SetIcon,window,data.IconMap,iconIndex)
+			end
 			window.OnActivate:Connect(function() enable(true) end)
 			window.OnDeactivate:Connect(function() disable(true) end)
 		end
@@ -1577,7 +1552,9 @@ Main = (function()
 		openButton.MainFrame.BottomFrame.Information.MouseButton1Click:Connect(function()
 			local duration = 1
 			local Infos = {
+				"Soft Dark Edition by il4pt",
 				"Contributors >>",
+				"Chillz (Dex++)",
 				"Toon (IY Dex and PRs)",
 				"Moon (Dex)",
 				"Cazan (3D Preview)",

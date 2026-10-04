@@ -546,14 +546,14 @@ local function main()
 
 			newEntry.Indent.BackgroundColor3 = Settings.Theme.Button
 			newEntry.Indent.BorderSizePixel = 0
-			newEntry.Indent.BackgroundTransparency = 0
+			Lib.SoftSet(newEntry.Indent,"BackgroundTransparency",0)
 		end)
 
 		newEntry.InputEnded:Connect(function(input)
 			local node = tree[index + Explorer.Index]
 			if not node or selection.Map[node] or (input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch) then return end
 
-			newEntry.Indent.BackgroundTransparency = 1
+			Lib.SoftSet(newEntry.Indent,"BackgroundTransparency",1)
 		end)
 
 		newEntry.MouseButton1Down:Connect(function()
@@ -680,15 +680,18 @@ local function main()
 
 				Explorer.MiscIcons:DisplayExplorerIcons(entry.Indent.Icon, obj.ClassName)
 
+				local selBar = entry.Indent:FindFirstChild("SelBar")
 				if selection.Map[node] then
 					entry.Indent.BackgroundColor3 = Settings.Theme.ListSelection
 					entry.Indent.BorderSizePixel = 0
-					entry.Indent.BackgroundTransparency = 0
+					Lib.SoftSet(entry.Indent,"BackgroundTransparency",selBar and 0.2 or 0,true)
+					if selBar then selBar.Visible = true end
 				else
+					if selBar then selBar.Visible = false end
 					if Lib.CheckMouseInGui(entry) then
 						entry.Indent.BackgroundColor3 = Settings.Theme.Button
 					else
-						entry.Indent.BackgroundTransparency = 1
+						Lib.SoftSet(entry.Indent,"BackgroundTransparency",1,true)
 					end
 				end
 
@@ -2219,6 +2222,22 @@ return search]==]
 			{5,"ImageLabel",{BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=1,Image="rbxassetid://5642383285",ImageRectOffset=Vector2.new(144,16),ImageRectSize=Vector2.new(16,16),Name="Icon",Parent={4},Position=UDim2.new(0,2,0,2),ScaleType=4,Size=UDim2.new(0,16,0,16),}},
 			{6,"ImageLabel",{BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=1,ImageRectOffset=Vector2.new(304,0),ImageRectSize=Vector2.new(16,16),Name="Icon",Parent={2},Position=UDim2.new(0,4,0,2),ScaleType=4,Size=UDim2.new(0,16,0,16),}},
 		})
+
+		-- Soft rows: rounded highlight and a small accent bar on selected rows
+		if Settings.Theme.SoftShapes then
+			local indent = entryTemplate.Indent
+			Lib.SoftCorner(indent)
+			local selBar = Instance.new("Frame")
+			selBar.Name = "SelBar"
+			selBar.BorderSizePixel = 0
+			selBar.BackgroundColor3 = Settings.Theme.Accent
+			selBar.Position = UDim2.new(0,0,0,4)
+			selBar.Size = UDim2.new(0,2,1,-8)
+			selBar.Visible = false
+			selBar.ZIndex = 2
+			Instance.new("UICorner",selBar).CornerRadius = UDim.new(1,0)
+			selBar.Parent = indent
+		end
 
 		local sys = Lib.ClickSystem.new()
 		sys.AllowedButtons = {1,2}

@@ -1441,13 +1441,15 @@ local function main()
 					local gName = (prop.CategoryName and "CAT_"..prop.CategoryName) or prop.Class.."."..prop.Name..(prop.SubName or "")
 
 					if prop.CategoryName then
-						entry.BackgroundColor3 = Settings.Theme.Main1
+						local soft = Settings.Theme.SoftShapes
+						entry.BackgroundColor3 = soft and Settings.Theme.Category or Settings.Theme.Main1
 						valueFrame.Visible = false
 
-						propNameBox.Text = prop.CategoryName
-						propNameBox.Font = Enum.Font.SourceSansBold
+						propNameBox.Text = soft and string.upper(prop.CategoryName) or prop.CategoryName
+						propNameBox.Font = soft and Enum.Font.GothamBold or Enum.Font.SourceSansBold
+						propNameBox.TextSize = soft and 12 or 14
 						expand.Visible = true
-						propNameBox.TextColor3 = Settings.Theme.Text
+						propNameBox.TextColor3 = soft and Settings.Theme.CategoryText or Settings.Theme.Text
 						nameFrame.BackgroundTransparency = 1
 						nameFrame.Size = UDim2.new(1,0,1,0)
 						editAttributeButton.Visible = false
@@ -1482,6 +1484,7 @@ local function main()
 						local nameArr = stringSplit(gName,".")
 						propNameBox.Text = prop.DisplayName or nameArr[#nameArr]
 						propNameBox.Font = Enum.Font.SourceSans
+						propNameBox.TextSize = 14
 						entry.BackgroundColor3 = Settings.Theme.Main2
 						valueFrame.Visible = true
 

@@ -1,5 +1,4 @@
 # Dex++
-![Preview](./preview.png)
 
 Dex++ is an extended version of Moon's Dex, made to fulfill some Moon's Dex prophecy.
 
