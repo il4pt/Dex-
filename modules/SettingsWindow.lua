@@ -398,6 +398,13 @@ local function main()
 			Settings.Decompiler.PreferDecompilerFallback = preferFallback.Toggled
 		end)
 		
+		AddSeperator("Privacy")
+		AddText("Opt-in usage counter: username, place ID, version.")
+		local shareUsage = AddCheckbox("Share Usage Statistics", Settings.Telemetry.Consent == "granted")
+		shareUsage.OnInput:Connect(function()
+			Main.SetTelemetryConsent(shareUsage.Toggled)
+		end)
+
 		-- Save buttons below
 		local BackgroundreloadButton = Lib.Frame.new()
 		BackgroundreloadButton.Gui.Parent = window.GuiElems.Content

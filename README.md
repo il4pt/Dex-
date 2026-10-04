@@ -9,6 +9,13 @@ Dex++ is an extended version of Moon's Dex, made to fulfill some Moon's Dex prop
 > - Old saved themes are migrated automatically, newer settings keep their defaults
 > - A broken plugin no longer stops Dex from loading
 > - Fixes: `cloneref` fallback, secure gui container on syn-based executors, 3D viewer rotating without drag on touch
+> - **Script Analyzer** (Explorer → right click a script → *Analyze Script*): local static analysis in four tabs
+>   - *Extraction*: bytecode header, services, imports, remote/HTTP calls, URLs, string table and a full disassembly
+>   - *CFA*: basic blocks, edges, dominators, loop detection, unreachable code, cyclomatic complexity
+>   - *AST*: Luau parser (types, generics, string interpolation, compound assignment, `continue`, if-expressions)
+>   - *Code Gen*: lifted pseudo-code from bytecode, or normalized source regenerated from the AST
+>   - Works from `getscriptbytecode` (Roblox's opcode encoding is detected automatically) or from pasted source; nothing leaves your client
+> - **Usage statistics are opt-in**: you are asked once. Only if you click *Allow* does Dex send your Roblox username, the place ID and the Dex version on launch. *Don't Allow* sends nothing, and you can change your answer any time in Settings → *Share Usage Statistics*
 
 ## Latest Version Script
 ```lua

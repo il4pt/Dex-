@@ -7,7 +7,7 @@ cloneref = cloneref or function(ref) return ref end
 local isFsSupported = readfile and writefile and isfile and isfolder and listfiles and delfile and delfolder
 
 -- Main vars
-local Main, Explorer, Properties, ScriptViewer, Console, SaveInstance, ModelViewer, SettingsWindow--[[, SecretServicePanel]], DefaultSettings, Notebook, Serializer, Lib local ggv = getgenv or nil
+local Main, Explorer, Properties, ScriptViewer, Console, SaveInstance, ModelViewer, SettingsWindow, ScriptAnalyzer--[[, SecretServicePanel]], DefaultSettings, Notebook, Serializer, Lib local ggv = getgenv or nil
 local API, RMD
 
 -- Default Settings
@@ -113,6 +113,10 @@ DefaultSettings = (function()
 		RemoteBlockWriteAttribute = false, -- writes attribute to remote instance if remote is blocked/unblocked
 		ClassIcon = "NewDark",
 		ToggleKey = "RightControl", -- Enum.KeyCode name that hides/shows every Dex gui, "" to disable
+		Telemetry = {
+			_Recurse = true,
+			Consent = "ask", -- "ask" until the user answers the prompt, then "granted" or "denied"
+		},
 		
 		-- What available icons:
 		-- > Vanilla3
@@ -170,7 +174,7 @@ end
 Main = (function()
 	local Main = {}
 
-	Main.ModuleList = {"Explorer","Properties","ScriptViewer","Console","SaveInstance","ModelViewer","SettingsWindow"}
+	Main.ModuleList = {"Explorer","Properties","ScriptViewer","Console","SaveInstance","ModelViewer","SettingsWindow","ScriptAnalyzer"}
 	Main.Elevated = false
 	Main.AllowDraggableOnMobile = true
 	Main.MissingEnv = {}
@@ -182,6 +186,12 @@ Main = (function()
 	Main.GitName = "il4pt"
 	Main.RepoName = "Dex-"
 	Main.GitRepoName = Main.GitName.."/"..Main.RepoName
+	Main.ReleaseTag = "v3.3-soft"
+
+	-- Opt-in usage counter. Empty disables it entirely (no prompt, no request).
+	-- When set, the user is asked once; only after they accept is {username, placeId, version}
+	-- POSTed as JSON to this URL on launch. Declining sends nothing, ever.
+	Main.TelemetryEndpoint = ""
 
 	Main.DisplayOrders = {
 		SideWindow = 8,
@@ -401,6 +411,79 @@ Main = (function()
 		end)
 	end
 
+	Main.SendUsagePing = function()
+		if Main.TelemetryEndpoint == "" or Settings.Telemetry.Consent ~= "granted" or not env.request then return end
+		task.spawn(pcall, env.request, {
+			Url = Main.TelemetryEndpoint,
+			Method = "POST",
+			Headers = {["Content-Type"] = "application/json"},
+			Body = service.HttpService:JSONEncode({
+				username = plr.Name,
+				placeId = game.PlaceId,
+				version = Main.ReleaseTag
+			})
+		})
+	end
+
+	Main.SetTelemetryConsent = function(granted)
+		Settings.Telemetry.Consent = granted and "granted" or "denied"
+		Main.SaveCurrentSettings()
+		if granted then Main.SendUsagePing() end
+	end
+
+	Main.ShowTelemetryConsent = function()
+		local win = Lib.Window.new()
+		win.Alignable = false
+		win.Resizable = false
+		win:SetTitle("Usage Statistics")
+		win:SetSize(340,160)
+
+		local host = Main.TelemetryEndpoint:match("^%a+://([^/]+)") or Main.TelemetryEndpoint
+		local info = Lib.Label.new()
+		info.Position = UDim2.new(0,10,0,8)
+		info.Size = UDim2.new(1,-20,1,-44)
+		info.Gui.TextWrapped = true
+		info.Gui.TextYAlignment = Enum.TextYAlignment.Top
+		info.Text = "Help count how many people use Dex-?\n\n"
+			.."If you allow it, each launch sends your Roblox username, the place ID and the Dex version to "..host..". "
+			.."Nothing else is collected, and nothing is sent if you decline. You can change this any time in Settings."
+		win:Add(info)
+
+		local allow = Lib.Button.new()
+		allow.Text = "Allow"
+		allow.AnchorPoint = Vector2.new(0,1)
+		allow.Position = UDim2.new(0,5,1,-5)
+		allow.Size = UDim2.new(0.5,-7,0,20)
+		allow.OnClick:Connect(function()
+			Main.SetTelemetryConsent(true)
+			win:Close()
+		end)
+		win:Add(allow)
+
+		local deny = Lib.Button.new()
+		deny.Text = "Don't Allow"
+		deny.AnchorPoint = Vector2.new(1,1)
+		deny.Position = UDim2.new(1,-5,1,-5)
+		deny.Size = UDim2.new(0.5,-7,0,20)
+		deny.OnClick:Connect(function()
+			Main.SetTelemetryConsent(false)
+			win:Close()
+		end)
+		win:Add(deny)
+
+		win:Show()
+	end
+
+	Main.InitTelemetry = function()
+		if Main.TelemetryEndpoint == "" or not env.request then return end
+		local consent = Settings.Telemetry.Consent
+		if consent == "granted" then
+			Main.SendUsagePing()
+		elseif consent ~= "denied" then
+			Main.ShowTelemetryConsent()
+		end
+	end
+
 	Main.SecureGui = function(gui)
 		--warn("Secured: "..gui.Name)
 		gui.Name = "_DPP_".. Main.GetRandomString()
@@ -556,6 +639,7 @@ Main = (function()
 		ModelViewer = Apps.ModelViewer
 		Notebook = Apps.Notebook
 		SettingsWindow = Apps.SettingsWindow
+		ScriptAnalyzer = Apps.ScriptAnalyzer
 		
 		
 		--SecretServicePanel = Apps.SecretServicePanel
@@ -567,7 +651,8 @@ Main = (function()
 			SaveInstance = SaveInstance,
 			ModelViewer = ModelViewer,
 			Notebook = Notebook,
-			SettingsWindow = SettingsWindow
+			SettingsWindow = SettingsWindow,
+			ScriptAnalyzer = ScriptAnalyzer
 			--SecretServicePanel = SecretServicePanel,
 		}
 		
@@ -1660,6 +1745,8 @@ Main = (function()
 		
 		Main.CreateApp({Name = "3D Viewer", IconMap = Main.LargeIcons, Icon = "Object", Window = ModelViewer.Window})
 
+		Main.CreateApp({Name = "Script Analyzer", IconMap = Main.LargeIcons, Icon = "Watcher", Window = ScriptAnalyzer.Window})
+
 		--Main.CreateApp({Name = "Secret Service Panel", IconMap = Main.LargeIcons, Icon = "Output", Window = SecretServicePanel.Window})
 		
 		for _, loadedplugin in pairs(Main.Plugins) do
@@ -1789,6 +1876,7 @@ Main = (function()
 		SaveInstance.Init()
 		ModelViewer.Init()
 		SettingsWindow.Init()
+		ScriptAnalyzer.Init()
 		--SecretServicePanel.Init()
 		
 		
@@ -1839,6 +1927,7 @@ Main = (function()
 		Lib.DeferFunc(function() Lib.Window.ToggleSide("right") end)
 
 		Main.SetupToggleKey()
+		pcall(Main.InitTelemetry)
 	end
 
 	Main.Uninit = function()
