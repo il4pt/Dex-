@@ -2393,8 +2393,10 @@ local function main()
 		codeFrame:SetText("-- Decompiling for the AST stage...")
 		task.spawn(function()
 			local ok, source = pcall(env.decompile or function() end, scr)
-			if ok and type(source) == "string" and not source:match("^%s*%-%- ?[Ff]ailed") and not source:match("^%-%- Error") and not source:match("^Failed") then
-				state.Input = source
+			-- the decompiler falls back to this module's own bytecode lift, which is not parseable Luau
+			local lifted = tostring(env.LastDecompiler or ""):find("bytecode lift", 1, true)
+			if ok and type(source) == "string" and not lifted and not source:match("^%s*%-%- ?[Ff]ailed") and not source:match("^%-%- Error") and not source:match("^Failed") then
+				state.Input = (Main.DecompileHeader or "")..source
 			else
 				state.Input = ""
 			end

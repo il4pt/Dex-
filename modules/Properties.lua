@@ -1216,6 +1216,19 @@ local function main()
 		end
 	end
 
+	-- UniqueId is assigned on the server and is not replicated, so clients read all zeros.
+	-- Try the executor's hidden property reader, otherwise say so and show the DebugId instead.
+	Properties.ResolveUniqueId = function(obj,val)
+		local isZero = function(v) return v == nil or (tostring(v):gsub("[0%-]","")) == "" end
+		if not isZero(val) then return val end
+		if gethiddenproperty then
+			local ok,hidden = pcall(gethiddenproperty,obj,"UniqueId")
+			if ok and not isZero(hidden) then return hidden end
+		end
+		local ok,debugId = pcall(obj.GetDebugId,obj)
+		return "Server-only (zero on client)"..((ok and debugId) and ("  |  DebugId "..debugId) or "")
+	end
+
 	Properties.GetPropVal = function(prop,obj)
 		if prop.MultiType then return "<Multiple Types>" end
 		if not obj then return end
@@ -1236,6 +1249,7 @@ local function main()
 			end
 		else
 			propVal = obj[prop.Name]
+			if prop.Name == "UniqueId" then propVal = Properties.ResolveUniqueId(obj,propVal) end
 		end
 		if prop.SubName then
 			local indexes = string.split(prop.SubName,".")

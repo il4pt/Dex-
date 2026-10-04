@@ -15,6 +15,7 @@ Dex++ is an extended version of Moon's Dex, made to fulfill some Moon's Dex prop
 >   - *AST*: Luau parser (types, generics, string interpolation, compound assignment, `continue`, if-expressions)
 >   - *Code Gen*: lifted pseudo-code from bytecode, or normalized source regenerated from the AST
 >   - Works from `getscriptbytecode` (Roblox's opcode encoding is detected automatically) or from pasted source; nothing leaves your client
+> - **Sturdier decompiling**: every available decompiler is tried in turn (your preferred one first) with timeouts, a retry for rate limits and a per-script cache; if all of them fail you still get the Script Analyzer's bytecode lift plus the reason each one failed
 > - **Usage statistics are opt-in**: you are asked once. Only if you click *Allow* does Dex send your Roblox username, the place ID and the Dex version on launch. *Don't Allow* sends nothing, and you can change your answer any time in Settings → *Share Usage Statistics*
 
 ## Latest Version Script

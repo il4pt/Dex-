@@ -258,22 +258,31 @@ local function main()
 	end
 	
 	ScriptViewer.ViewScript = function(scr)
+		local header = Main.DecompileHeader or ""
+		codeFrame:SetText(header.."-- Decompiling "..getPath(scr).."...")
+		window:Show()
+
 		local oldtick = tick()
 		local s,source = pcall(env.decompile or function() end,scr)
+		local info = Settings.ScriptViewer.ShowMoreInfo
 
 		if not s or not source then
 			PreviousScr = nil
 			dumpbtn.TextColor3 = Color3.new(0.5,0.5,0.5)
-			source = "-- Unable to view source.\n"
+			source = header.."-- Unable to view source.\n"
 			
-			if Settings.ScriptViewer.ShowMoreInfo then
+			if info then
 				source = source .. "-- Script Path: "..getPath(scr).."\n"
-				if (scr.ClassName == "Script" and (scr.RunContext == Enum.RunContext.Legacy or scr.RunContext == Enum.RunContext.Server)) or not scr:IsA("LocalScript") then
-					source = source .. "-- Reason: The script is not running on client. (attempt to decompile ServerScript or 'Script' with RunContext Server)\n"
+				if not env.isViableDecompileScript(scr) then
+					source = source .. "-- Reason: The script does not run on the client (server Script, or RunContext Server), its bytecode is never sent to you.\n"
 				elseif not env.isdecompile() then
 					source = source .. "-- Reason: Your executor does not support decompiler. (missing 'decompile' function and 'getscriptbytecode' function as fallback)\n"
 				else
-					source = source .. "-- Reason: Unknown Error.\n"
+					source = source .. "-- Reason: every decompiler failed.\n"
+				end
+				if not s then source = source .. "--   " .. tostring(source) .. "\n" end
+				for _, err in ipairs(env.LastDecompileErrors or {}) do
+					source = source .. "--   " .. err .. "\n"
 				end
 				source = source .. "-- Executor: "..executorName.." ("..executorVersion..")"
 			end
@@ -283,10 +292,11 @@ local function main()
 
 			local decompiled = source
 
-			source = "-- Script Path: "..getPath(scr).."\n"
+			source = header.."-- Script Path: "..getPath(scr).."\n"
 			
-			if Settings.ScriptViewer.ShowMoreInfo then
+			if info then
 				source = source .. "-- Took "..tostring(math.floor( (tick() - oldtick) * 100) / 100).."s to decompile.\n"
+				source = source .. "-- Decompiler: "..tostring(env.LastDecompiler or "unknown").."\n"
 				source = source .. "-- Executor: "..executorName.." ("..executorVersion..")\n\n"
 			end
 			

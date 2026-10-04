@@ -1537,7 +1537,11 @@ local function main()
 			for _, v in next, selection.List do
 				if v.Obj:IsA("LuaSourceContainer") and env.isViableDecompileScript(v.Obj) then
 					local success, source = pcall(env.decompile, v.Obj)
-					if not success or not source then source = ("-- DEX - %s failed to decompile %s"):format(env.executor, v.Obj.ClassName) end
+					if not success or not source then
+						source = ("-- Dex failed to decompile %s (%s)\n"):format(v.Obj.ClassName, tostring(Main.Executor or "unknown executor"))
+						for _, err in ipairs(env.LastDecompileErrors or {}) do source = source.."--   "..err.."\n" end
+					end
+					source = (Main.DecompileHeader or "")..source
 					local fileName = ("%s_%s_%i_Source.txt"):format(env.parsefile(v.Obj.Name), v.Obj.ClassName, game.PlaceId)
 					--env.writefile(fileName, source)
 					Lib.SaveAsPrompt(fileName, source)

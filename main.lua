@@ -188,7 +188,8 @@ Main = (function()
 	Main.GitName = "il4pt"
 	Main.RepoName = "Dex-"
 	Main.GitRepoName = Main.GitName.."/"..Main.RepoName
-	Main.ReleaseTag = "v3.3.2-soft"
+	Main.ReleaseTag = "v3.4-soft"
+	Main.DecompileHeader = "-- Made By il4pt\n"
 
 	-- Opt-in usage counter. Empty disables it entirely (no prompt, no request).
 	-- When set, the user is asked once; only after they accept is {username, placeId, version}
@@ -834,20 +835,110 @@ Main = (function()
 				}
 			).Body
 		end
-		env.decompile = function(...)
-			if typeof(decompile) == "function" and Settings.Decompiler.PreferDecompilerFallback == false then
-				return decompile(...)
-			elseif typeof(getscriptbytecode) == "function" then
-				local fallbackMode = Settings.Decompiler.DecompilerFallback
-				
-				if fallbackMode == "Konstant" then
-					return KonstantDec(...)
-				elseif fallbackMode == "AdvancedDecompiler" then
-					return ADDec(...)
-				elseif  fallbackMode == "Shiny" then
-					return ShinyDec(...)
+		-- Decompile pipeline: every available decompiler is tried in order (the preferred one first)
+		-- with a timeout, Konstant gets a retry for rate limits, results are cached per bytecode,
+		-- and if everything fails the bytecode is lifted locally by the Script Analyzer.
+		local decompileCache, decompileCacheSize = {}, 0
+		local FAIL_MARKERS = {"failed to", "error occurred", "is not active", "is missing", "too many requests",
+			"timed out", "not supported", "unable to", "decompilation failed", "decompiler error", "<!doctype", "<html"}
+
+		local function looksFailed(src)
+			if type(src) ~= "string" or src:gsub("%s", "") == "" then return true end
+			-- failure messages are short, or open with the error (Konstant can append a long HTML body);
+			-- for long output only the first line is checked so real code mentioning "failed to" passes
+			local lower = (#src > 600 and (src:match("^[^\n]*") or "") or src):lower()
+			for _, marker in ipairs(FAIL_MARKERS) do
+				if lower:find(marker, 1, true) then return true end
+			end
+			return false
+		end
+
+		local function withTimeout(seconds, fn, ...)
+			local args = table.pack(...)
+			local done, ok, result = false, false, nil
+			task.spawn(function()
+				ok, result = pcall(fn, table.unpack(args, 1, args.n))
+				done = true
+			end)
+			local started = tick()
+			while not done and tick() - started < seconds do task.wait(0.05) end
+			if not done then return false, "timed out after "..seconds.."s" end
+			return ok, result
+		end
+
+		local function getChain()
+			local chain = {}
+			local hasBytecode = typeof(getscriptbytecode) == "function"
+			local native = typeof(decompile) == "function" and decompile or nil
+			local preferred = Settings.Decompiler.DecompilerFallback
+			if hasBytecode then
+				local fallbacks = {
+					{Name = "Konstant", Fn = KonstantDec, Timeout = 25, Retries = 2},
+					{Name = "AdvancedDecompiler", Fn = ADDec, Timeout = 40, Retries = 1},
+				}
+				-- Shiny needs a local server, only use it when it was picked
+				if preferred == "Shiny" then table.insert(fallbacks, 1, {Name = "Shiny", Fn = ShinyDec, Timeout = 25, Retries = 1}) end
+				table.sort(fallbacks, function(a, b) return (a.Name == preferred and 0 or 1) < (b.Name == preferred and 0 or 1) end)
+				chain = fallbacks
+			end
+			if native then
+				local entry = {Name = "Executor", Fn = native, Timeout = 30, Retries = 1}
+				if Settings.Decompiler.PreferDecompilerFallback then table.insert(chain, entry) else table.insert(chain, 1, entry) end
+			end
+			return chain
+		end
+
+		env.LastDecompiler = nil
+		env.LastDecompileErrors = {}
+		env.decompile = function(scr)
+			local bytecode
+			if typeof(getscriptbytecode) == "function" then
+				local ok, bc = pcall(getscriptbytecode, scr)
+				if ok and type(bc) == "string" and #bc > 0 then bytecode = bc end
+			end
+			local cached = bytecode and decompileCache[bytecode]
+			if cached then
+				env.LastDecompiler = cached.Name.." (cached)"
+				return cached.Source
+			end
+
+			local errors = {}
+			env.LastDecompileErrors = errors
+			for _, d in ipairs(getChain()) do
+				for attempt = 1, d.Retries do
+					local ok, src = withTimeout(d.Timeout, d.Fn, scr)
+					if ok and not looksFailed(src) then
+						env.LastDecompiler = d.Name
+						if bytecode then
+							-- keep the cache bounded, scripts can be huge
+							if decompileCacheSize >= 64 then table.clear(decompileCache) decompileCacheSize = 0 end
+							decompileCache[bytecode] = {Source = src, Name = d.Name}
+							decompileCacheSize += 1
+						end
+						return src
+					end
+					local reason = ok and tostring(src):gsub("%s+", " "):sub(1, 120) or tostring(src)
+					errors[#errors+1] = d.Name..(d.Retries > 1 and (" #"..attempt) or "")..": "..reason
+					if attempt < d.Retries then task.wait(attempt) end
 				end
 			end
+
+			-- Last resort: lift the bytecode locally, readable even when no decompiler is reachable
+			local analyzer = Main.AppControls.ScriptAnalyzer
+			if bytecode and analyzer and analyzer.Core then
+				local ok, lifted = pcall(function()
+					local Core = analyzer.Core
+					return Core.ReportBytecodeCodegen(Core.Decode(Core.Deserialize(bytecode)))
+				end)
+				if ok and lifted then
+					env.LastDecompiler = "Script Analyzer (bytecode lift)"
+					local lines = {"-- Every decompiler failed, showing Dex's bytecode lift instead (pseudo-code, not runnable):"}
+					for _, e in ipairs(errors) do lines[#lines+1] = "--   "..e end
+					return table.concat(lines, "\n").."\n\n"..lifted
+				end
+			end
+			env.LastDecompiler = nil
+			return nil
 		end
 		
 		--[[if Main.Elevated then
