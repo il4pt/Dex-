@@ -188,7 +188,7 @@ Main = (function()
 	Main.GitName = "il4pt"
 	Main.RepoName = "Dex-"
 	Main.GitRepoName = Main.GitName.."/"..Main.RepoName
-	Main.ReleaseTag = "v3.3.1-soft"
+	Main.ReleaseTag = "v3.3.2-soft"
 
 	-- Opt-in usage counter. Empty disables it entirely (no prompt, no request).
 	-- When set, the user is asked once; only after they accept is {username, placeId, version}

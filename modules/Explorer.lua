@@ -9,6 +9,11 @@ local Main,Lib,Apps,Settings -- Main Containers
 local Explorer, Properties, ScriptViewer, ModelViewer, Notebook -- Major Apps
 local API,RMD,env,service,plr,create,createSimple -- Main Locals
 
+-- The tree is keyed by the references the engine hands back (Parent, FindFirstAncestorWhichIsA),
+-- which are never a cloneref'd copy. Keying the root by cloneref(game) left every service
+-- without a parent node and the tree showed only Nil Instances.
+local game = game:GetService("Workspace").Parent
+
 local function initDeps(data)
 	Main = data.Main
 	Lib = data.Lib
