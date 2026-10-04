@@ -175,6 +175,8 @@ Main = (function()
 	local Main = {}
 
 	Main.ModuleList = {"Explorer","Properties","ScriptViewer","Console","SaveInstance","ModelViewer","SettingsWindow","ScriptAnalyzer"}
+	-- Extras that must never stop Dex from starting: a failure only warns and the app is skipped
+	Main.OptionalModules = {ScriptAnalyzer = true}
 	Main.Elevated = false
 	Main.AllowDraggableOnMobile = true
 	Main.MissingEnv = {}
@@ -186,7 +188,7 @@ Main = (function()
 	Main.GitName = "il4pt"
 	Main.RepoName = "Dex-"
 	Main.GitRepoName = Main.GitName.."/"..Main.RepoName
-	Main.ReleaseTag = "v3.3-soft"
+	Main.ReleaseTag = "v3.3.1-soft"
 
 	-- Opt-in usage counter. Empty disables it entirely (no prompt, no request).
 	-- When set, the user is asked once; only after they accept is {username, placeId, version}
@@ -626,7 +628,11 @@ Main = (function()
 		for i,v in pairs(Main.ModuleList) do
 			local s,e = pcall(Main.LoadModule,v)
 			if not s then
-				Main.Error("FAILED LOADING " .. v .. " CAUSE " .. e)
+				if Main.OptionalModules[v] then
+					warn("[Dex-] Optional module "..v.." failed to load: "..tostring(e))
+				else
+					Main.Error("FAILED LOADING " .. v .. " CAUSE " .. e)
+				end
 			end
 		end
 
@@ -662,7 +668,11 @@ Main = (function()
 		for i,v in pairs(Main.ModuleList) do
 			local control = Main.AppControls[v]
 			if control then
-				control.InitAfterMain(appTable)
+				local s,e = pcall(control.InitAfterMain,appTable)
+				if not s then
+					if not Main.OptionalModules[v] then error(e,0) end
+					warn("[Dex-] Optional module "..v.." failed InitAfterMain: "..tostring(e))
+				end
 			end
 		end
 	end
@@ -756,7 +766,7 @@ Main = (function()
 		
 		local AdvancedDecompilerCache
 		pcall(function()
-			AdvancedDecompilerCache = loadstring(game:HttpGet("https://raw.githubusercontent.com/"..Main.GitName.."/Advanced-Decompiler-V3/refs/heads/main/init.lua"))()
+			AdvancedDecompilerCache = loadstring(game:HttpGet("https://raw.githubusercontent.com/AZYsGithub/Advanced-Decompiler-V3/refs/heads/main/init.lua"))()
 		end)
 		
 		local konstant_last_call = 0
@@ -1745,7 +1755,9 @@ Main = (function()
 		
 		Main.CreateApp({Name = "3D Viewer", IconMap = Main.LargeIcons, Icon = "Object", Window = ModelViewer.Window})
 
-		Main.CreateApp({Name = "Script Analyzer", IconMap = Main.LargeIcons, Icon = "Watcher", Window = ScriptAnalyzer.Window})
+		if ScriptAnalyzer and ScriptAnalyzer.Window then
+			Main.CreateApp({Name = "Script Analyzer", IconMap = Main.LargeIcons, Icon = "Watcher", Window = ScriptAnalyzer.Window})
+		end
 
 		--Main.CreateApp({Name = "Secret Service Panel", IconMap = Main.LargeIcons, Icon = "Output", Window = SecretServicePanel.Window})
 		
@@ -1876,7 +1888,14 @@ Main = (function()
 		SaveInstance.Init()
 		ModelViewer.Init()
 		SettingsWindow.Init()
-		ScriptAnalyzer.Init()
+		if ScriptAnalyzer then
+			local s,e = pcall(ScriptAnalyzer.Init)
+			if not s then
+				warn("[Dex-] Script Analyzer disabled: "..tostring(e))
+				ScriptAnalyzer = nil
+				Apps.ScriptAnalyzer = nil
+			end
+		end
 		--SecretServicePanel.Init()
 		
 		

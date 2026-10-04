@@ -6,7 +6,7 @@
 
 -- Common Locals
 local Main,Lib,Apps,Settings -- Main Containers
-local Explorer, Properties, ScriptViewer, ModelViewer, ScriptAnalyzer, Notebook -- Major Apps
+local Explorer, Properties, ScriptViewer, ModelViewer, Notebook -- Major Apps
 local API,RMD,env,service,plr,create,createSimple -- Main Locals
 
 local function initDeps(data)
@@ -28,7 +28,6 @@ local function initAfterMain()
 	Explorer = Apps.Explorer
 	Properties = Apps.Properties
 	ScriptViewer = Apps.ScriptViewer
-	ScriptAnalyzer = Apps.ScriptAnalyzer
 	ModelViewer = Apps.ModelViewer
 	Notebook = Apps.Notebook
 end
@@ -965,7 +964,7 @@ local function main()
 			context:AddRegistered("DUMP_FUNCTIONS", not presentClasses.isViableDecompileScript or env.getupvalues == nil or env.getconstants == nil)
 			context:AddRegistered("SAVE_SCRIPT", not presentClasses.isViableDecompileScript or not env.isdecompile or env.writefile == nil)
 			context:AddRegistered("SAVE_BYTECODE", not presentClasses.isViableDecompileScript or env.getscriptbytecode == nil or env.writefile == nil)
-			context:AddRegistered("ANALYZE_SCRIPT", not presentClasses.isViableDecompileScript or (env.getscriptbytecode == nil and env.decompile == nil))
+			if Apps.ScriptAnalyzer then context:AddRegistered("ANALYZE_SCRIPT", not presentClasses.isViableDecompileScript or (env.getscriptbytecode == nil and env.decompile == nil)) end
 
 		end
 
@@ -1525,7 +1524,8 @@ local function main()
 
 		context:Register("ANALYZE_SCRIPT",{Name = "Analyze Script", IconMap = Explorer.MiscIcons, Icon = "ExploreData", DisabledIcon = "Empty", OnClick = function()
 			local scr = selection.List[1] and selection.List[1].Obj
-			if scr and ScriptAnalyzer then ScriptAnalyzer.Analyze(scr) end
+			local analyzer = Apps.ScriptAnalyzer
+			if scr and analyzer then analyzer.Analyze(scr) end
 		end})
 
 		context:Register("SAVE_SCRIPT",{Name = "Save Script", IconMap = Explorer.MiscIcons, Icon = "Save", DisabledIcon = "Empty", OnClick = function()
